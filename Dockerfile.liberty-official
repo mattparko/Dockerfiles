@@ -1,0 +1,34 @@
+# Apply internal security requirements to open-liberty base image
+
+ARG LIBERTY_VERSION=21.0.0.7
+ARG JAVA_VERSION=java8
+ARG JAVA_TYPE=openj9
+ARG BUILD_TYPE=kernel-slim
+
+FROM openliberty/open-liberty:${LIBERTY_VERSION}-${BUILD_TYPE}-${JAVA_VERSION}-${JAVA_TYPE}-ubi
+
+LABEL name="Open Liberty" \
+      description="Official Open Liberty image for Internal Use" \
+      liberty_version="${LIBERTY_VERSION}" \
+      java_version="${JAVA_VERSION}" \
+      java_type="${JAVA_TYPE}" \
+      build_type="${BUILD_TYPE}" \
+      ubi_version="ubi8"
+
+USER root
+
+COPY scripts/ubi8-minimal /security-scripts/
+COPY banners/issue /etc/
+
+RUN echo Update packages and install security fixes && \
+    dnf update -y && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_accounts_umask_etc_bashrc.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_accounts_umask_etc_csh_cshrc.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_accounts_umask_etc_profile.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_configure_crypto_policy.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_configure_openssl_crypto_policy.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_openssl_use_strong_entropy.sh && \
+    dnf clean all && \
+    rm -rf /security-scripts/ /var/cache/dnf/ /var/tmp/* /tmp/* /var/tmp/.???* /tmp/.???*
+
+USER 1001
