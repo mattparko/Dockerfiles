@@ -1,0 +1,28 @@
+# Apply internal security requirements to
+# open-liberty:springBoot2-ubi-min image
+
+ARG LIBERTY_VERSION=19.0.0.9
+ARG JAVA_VERSION=java8
+
+FROM openliberty/open-liberty:springBoot2-ubi-min
+
+LABEL name="Open Liberty" \
+      description="Official Open Liberty image for Internal Use" \
+      liberty_version="${LIBERTY_VERSION}" \
+      java_version="${JAVA_VERSION}" \
+      ubi_version="ubi7-minimal"
+
+USER root
+
+COPY scripts/ubi7-minimal /security-scripts/
+COPY banners/issue /etc/
+
+RUN echo Update packages and install security fixes && \
+    microdnf update -y && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_accounts_max_concurrent_login_sessions.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_accounts_tmout.sh && \
+    /security-scripts/xccdf_org.ssgproject.content_rule_rpm_verify_permissions.sh && \
+    microdnf clean all && \
+    rm -rf /security-scripts/ /var/cache/dnf/ /var/tmp/* /tmp/* /var/tmp/.???* /tmp/.???*
+
+USER 1001
